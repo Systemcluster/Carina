@@ -1,5 +1,27 @@
 # Specification
 
+## Structure
+
+## Imports
+
+Modules are imported into identifiers.
+
+    math :: md "math" "4.0"
+    rand :: md "rand"
+    system :: md "system"
+
+Modules can be conditionally imported at compile-time.
+
+    windowing :: mt system.env "envvar"
+        "1"
+            md "window64"
+        _
+            md "windowlx"
+
+Modules can be imported into the current block-namespace.
+
+    im system
+
 ## Types and Fundamentals
 
 ### Hierarchy
@@ -35,7 +57,7 @@ Blocks: `{}` or indentation-based
 Floats: `0.0` or `0e0` or `+0.0` or `0e+0` or `+0e+0`
 Integers: `0` or `+0`
 
-Fundamental literals can only follow a fundamental specifier.
+Fundamental literals can only follow the associated fundamental-specifier.
 
 Functions: `fn _ _ '_ -> _ {}`
 Structures: `st {a: X b: X}`
@@ -96,7 +118,7 @@ Structures are structured collections of values.
 
 Structures are polymorphic over defined types.
 
-    Struct :: st 'TypeA 'TypeB
+    Struct :: st TypeA TypeB
         i: U32
         b: TypeA
         c: TypeB
@@ -120,7 +142,7 @@ Values are moved by default, and can be copied by preceding them with `$`. Simil
 
 ### Matching and Branching
 
-Types can be matched with the symbol [']. The following function expects the literal type S64 or S32 as its argument.
+Types can be matched with the symbol [']. The following function expects the literal type (not a value of) S64 or S32 as its argument.
 
     m :: fn a: 'S64|'S32 => ...
 
