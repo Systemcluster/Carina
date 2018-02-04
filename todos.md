@@ -23,6 +23,14 @@ Think about loops
 Speficy variadic generics
 -> Maybe just ranges/arrays over unspecified types.
 
+Think about async implementation
+-> Get inspiration from e.g. Go
+
+Think about references/pointers
+
+Think about how option/result unwrapping chains should look,
+i.e. further processing of option wrapped values
+
 ## Mid-term
 
 Specify tagging functionality
