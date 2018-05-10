@@ -1,0 +1,26 @@
+eol        = _{ ("\n" | eoi) }
+whitespace = _{ (" " | "\t") }
+
+blockstart =  { "\x1B\x12" } 
+blockend   =  { "\x1B\x14" }
+
+digit = _{ '0'..'9' }
+plus  =  { "+" }
+minus =  { "-" }
+int   = ${ (plus|minus)? ~ digit ~ (digit | "_")* }
+float = ${ int ~ "." ~ int? ~ exp? | int ~ exp }
+exp   = ${ ^"e" ~ (plus|minus)? ~ int }
+
+// @consider add multi-level strings
+string_line       = { "\"\"" ~ (!(eol) ~ any)* ~ eol }
+string_inline_raw = { (!("\\" | "\"") ~ any)+ }
+string_escape     = { "\\" ~ any }
+string_inline     = { "\"" ~ (string_inline_raw | string_escape)* ~ "\"" }
+string            = { (string_line | string_inline) }
+
+expr    = {"notyet"}
+subexpr = {"notyet"}
+
+
+// test grammars, not for production use
+test_block_empty = _{ blockstart ~ blockend }

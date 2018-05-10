@@ -1,0 +1,40 @@
+[package]
+name = "carina-alpha"
+description = "Carina Alpha programming language compiler"
+version = "0.0.1-dev"
+authors = ["Christian Sdunek <me@systemcluster.me>"]
+license = "UNLICENSED"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "carina"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 0
+panic = "unwind"
+debug = true
+debug-assertions = true
+
+[profile.test]
+opt-level = 0
+panic = "unwind"
+debug = true
+debug-assertions = true
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+debug = false
+debug-assertions = false
+
+[dependencies]
+pest = "^1.0.0-beta"
+pest_derive = "^1.0.0-beta"
+failure = "^0.1.1"
+simplelog = "^0.4.4"
+log = "^0.3.9"
+unicode-segmentation = "^1.2.0"
+time = "^0.1.39"
+rand = "0.4.2"

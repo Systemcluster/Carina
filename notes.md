@@ -42,6 +42,8 @@ Traits:
     addition_trait :: tr A: Integer
         addextra: fn a b
             add [add a b] a
+            ## or
+            add a b |> add a
 
 Polymorphic structures are in essence equal to compile-time functions returning the defined structure.
 

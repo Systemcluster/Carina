@@ -1,0 +1,4 @@
+main :: fn =>
+	print ""Hello, everyone!
+	x : u32 10
+	* x 2

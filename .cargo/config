@@ -1,0 +1,11 @@
+[target.'cfg(any())']
+rustflags = [
+	"-Zthinlto",
+	"-Ztwo-phase-borrows",
+	"-Ccodegen-units=16"
+]
+[target.'cfg(debug_assertions)']
+rustflags = [
+	"-Ctarget-cpu=native",
+	"-Ctarget-feature=-crt-static",
+]
