@@ -1,0 +1,10 @@
+[package]
+name        = "carina-alpha"
+description = "Carina Alpha programming language compiler"
+version     = "0.0.1-dev"
+authors     = ["Christian Sdunek <me@systemcluster.me>"]
+publish     = false
+license     = "unlicensed"
+
+
+[dependencies]
