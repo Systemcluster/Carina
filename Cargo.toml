@@ -30,7 +30,7 @@ debug-assertions = false
 [dependencies]
 pest = "^1"
 pest_derive = "^1"
-failure = "^0.1"
+failure = {version = "^0.1", feature = ["std"]}
 rand = "^0.5"
 time = "^0.1"
 unicode-segmentation = "^1.2"
