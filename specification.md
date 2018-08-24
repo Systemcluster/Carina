@@ -175,8 +175,12 @@ Branching on sum types requires matching as well. Match statements like these ar
 Matches can be destructured as well.
 
     mt complex_structure
-        st a: S32 b: [st x: F32]
+        st {a: S32 b: st {x: F32}}
             print "struct contains nested % and %" a x
+        st
+                a: S32
+                b: [st x: F32]
+            print "alternative"
 
 
 ## Metaprogramming

@@ -58,9 +58,55 @@ Based on this we can implement monadic traits:
 
 ## Types and Fundamentals
 
+### Implicit Sum Types & Sum Type Resolution
+
+An expression without a type specifier returning values of different types is evaluated to a sum type value when called.
+
+Sum types are automatically resolved to their concrete type if it is known at compile time.
+
+
+    matcher := mt i: _
+        gt 100
+            "{%} is huge!" i
+        _
+            100
+    # matcher is of type: fn _ => Str|I64
+
+    stringval := matcher 9001
+    # stringval is of type Str
+
+    intval := matcher 3
+    # intval is of type I64
+
+    sumval := matcher <| std.io.getline
+    # sumval is of type Str|I64
+
+Sum type values have to be matched before they can be used in type-specific contexts.
+
+    mt sumval
+        x :_ I64
+            math.mul x 5 |> print
+        x :_ Str
+            print x
+
 ### Functions
 
 ## Syntax
+
+The Placeholder `_` has a specific meaning depending on the Fundamental it's used in.
+
+Function identifiers are evaluated if positioned at the start of a subexpression, otherwise they're parsed as a function reference.
+If the call-site expects an argument matching the return type of a passed function with no arguments, the function gets evaluated instead.
+
+    # evaluate filter with function math.even as first argument,
+    # and the return value of get_my_numbers as the second
+
+    p : filter math.even <| get_my_numbers
+
+    # or making use of auto-evaluation:
+    # p : filter math.even get_my_numbers
+
+?? Assigning with `:=` denotes a mutable assignment, `::` denotes a constant assignment. `:!` enforces a compile-time evaluated assignment.
 
 ### Infix
 
@@ -90,7 +136,7 @@ The `|>` infix wraps the preceding expression into a subexpression.
 
 And `<|` should put the succeeding subexpression after the preceeding.
 
-    graphics.getstruct <| .x |> math.multiply 2
+    graphics.getstruct <| _.x |> math.multiply 2
     ## would be equal to
     math.multiply 2 [[graphics.getstruct].x]
 
