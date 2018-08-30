@@ -1,17 +1,11 @@
 # Carina
 
-## Goals
+A consistent pattern-matching functional programming language.
 
-- ### Consistent Syntax
-- ### One Obvious Way
+## Example
 
-## Features
+    ...
 
-- ### Static Analysis
+## Overview
 
-    Programs are statically analyzed at compile time for the possible types and side-effects of every function and value.
-
-- ### Implicit Sum Types & Sum Type Resolution
-
-- ### First-Class Types
-
+...
