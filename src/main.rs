@@ -19,9 +19,14 @@
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
 
+extern crate failure;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
+use failure::{Error};
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), Error> {
     println!("Hello, world!");
 
     Ok(())
