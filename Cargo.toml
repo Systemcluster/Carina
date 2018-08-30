@@ -28,11 +28,13 @@ debug = false
 debug-assertions = false
 
 [dependencies]
-failure = "0.1.1"
-log = "0.4.1"
-simplelog = "0.5.1"
-unicode-segmentation = "1.2.1"
-regex = "1.0.0"
-time = "0.1.40"
-pest = "1.0.6"
-pest_derive = "1.0.7"
+pest = "^1"
+pest_derive = "^1"
+failure = "^0.1"
+rand = "^0.5"
+time = "^0.1"
+unicode-segmentation = "^1"
+simplelog = "^0.5"
+log = "^0.4"
+ring = "^0.13"
+regex = "^1"
