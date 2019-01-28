@@ -33,6 +33,16 @@
 	b := when (eq x y) => println "equal" |> else _ => println "not equal"
 	## True|False -> Result(None) -> None|None
 
+	## or better:
+
+	b := eq x y |> then [=>println "equal!"] |> else [=>println "not equal!"]
+
+	print-if-eq :: => then => println "equal!"
+	print-if-ne :: => else => println "not equal!"
+
+	b := eq x y |> print-if-eq |> print-if-ne
+
+
 
 ## functions
 
@@ -48,3 +58,4 @@ a, b  = b, a
 ## match-and-assign statement,
 ## like https://www.openmymind.net/Elixirs-With-Statement/
 ## ?
+
