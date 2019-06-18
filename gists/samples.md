@@ -30,6 +30,8 @@
       # or
       even : Boolean ' mod _ 2
       filtered: filter even 5..9
+      # or
+      filtered := filter [eq 0, mod _ 2] 5..9
 
       # @note: idea: generic "eat arguments" function that takes an arbitrary number of arguments
       # and passes only required ones to passed function
