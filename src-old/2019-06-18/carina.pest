@@ -1,0 +1,14 @@
+eol        = _{ (NEWLINE | EOI) }
+WHITESPACE = _{ " " }
+SPACE      = _{ " " }
+
+assignment_token  = { ":=" }
+
+identifier = ${ (ASCII_ALPHANUMERIC)+ }
+expression = !{ (call) }
+assignment = !{ identifier ~ assignment_token ~ expression }
+call       = !{ identifier ~ (identifier | subexpression )*  }
+
+subexpression = { "[" ~ expression ~ "]" }
+
+module = { SOI ~ (eol | expression ~ eol)* ~ EOI }
