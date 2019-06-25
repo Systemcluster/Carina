@@ -1,4 +1,19 @@
-fn test ::
-	foo
-	hey [baomay]
-	"yo!"
+function   calls
+
+
+# foo
+
+# bar
+# lel
+
+
+
+blocks
+	like this
+
+	and this
+
+# and comments!
+
+xbuiltin-define-wrap [ ] builtin-scoped-expression
+xbuiltin-define-infix : builtin-restrict-type

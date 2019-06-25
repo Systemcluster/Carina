@@ -32,7 +32,8 @@
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "RUST_BACKTRACE": "1"
+                    "RUST_BACKTRACE": "1",
+                    "LOG_LEVEL": "debug"
                 }
             },
             "problemMatcher": [

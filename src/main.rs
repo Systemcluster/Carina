@@ -49,7 +49,7 @@ Carina Compiler
 #![feature(thread_local)]
 #![feature(trace_macros)]
 #![feature(trait_alias)]
-#![feature(trivial_bounds)]
+// #![feature(trivial_bounds)]
 #![feature(try_blocks)]
 #![feature(type_alias_enum_variants)]
 #![feature(type_ascription)]
@@ -111,8 +111,6 @@ Carina Compiler
 #[macro_use] extern crate regex;
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde;
-#[macro_use] extern crate pest;
-#[macro_use] extern crate pest_derive;
 
 
 use log::*;
@@ -136,19 +134,23 @@ struct Opt {
 }
 
 
-mod start;
+mod parser;
 
 fn main() {
 	let opt = Opt::from_args();
 
-	let time_start = Utc::now();
+	let level_default = log::LevelFilter::Info;
+	let level: log::LevelFilter = std::env::var("LOG_LEVEL").map(|v|str::parse(&v))
+		.unwrap_or(Ok(level_default))
+		.unwrap_or(level_default);
 	pretty_env_logger::formatted_timed_builder()
 		.write_style(env_logger::WriteStyle::Always)
-		.filter_level(log::LevelFilter::Info)
+		.filter_level(level)
 		.init();
 
+	let time_start = Utc::now();
 	let success: bool;
-	match start::main(opt.input) {
+	match parser::main(opt.input) {
 		Err(err) => {
 			error!("{}", err);
 			success = false;
