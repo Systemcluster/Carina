@@ -6,6 +6,7 @@ Carina Compiler
 #![feature(arbitrary_self_types)]
 #![feature(associated_type_defaults)]
 #![feature(async_await)]
+#![feature(bind_by_move_pattern_guards)] 
 #![feature(box_patterns, box_syntax)]
 #![feature(c_variadic)]
 #![feature(concat_idents)]
@@ -118,6 +119,7 @@ use env_logger;
 use pretty_env_logger;
 use chrono::*;
 use structopt::StructOpt;
+use color_backtrace;
 
 
 #[derive(StructOpt, Debug)]
@@ -137,6 +139,7 @@ struct Opt {
 mod parser;
 
 fn main() {
+	color_backtrace::install();
 	let opt = Opt::from_args();
 
 	let level_default = log::LevelFilter::Info;
