@@ -1,10 +1,6 @@
-/*
-Carina Compiler
-*/
-
-
 #![feature(arbitrary_self_types)]
 #![feature(associated_type_defaults)]
+#![feature(associated_type_bounds)]
 #![feature(async_await)]
 #![feature(bind_by_move_pattern_guards)] 
 #![feature(box_patterns, box_syntax)]
@@ -58,7 +54,6 @@ Carina Compiler
 #![feature(unsized_locals, unsized_tuple_coercion)]
 #![feature(untagged_unions)]
 
-
 #![feature(await_macro)]
 #![feature(clamp)]
 #![feature(coerce_unsized)]
@@ -104,9 +99,11 @@ Carina Compiler
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
+#![allow(clippy::useless_format)]
 
 
-#[global_allocator] static Allocator: std::alloc::System = std::alloc::System;
+#[global_allocator] 
+static Allocator: std::alloc::System = std::alloc::System;
 
 
 #[macro_use] extern crate regex;
@@ -117,6 +114,7 @@ Carina Compiler
 use log::*;
 use env_logger;
 use pretty_env_logger;
+use async_log;
 use chrono::*;
 use structopt::StructOpt;
 use color_backtrace;
@@ -137,6 +135,7 @@ struct Opt {
 
 
 mod parser;
+mod parser2;
 
 fn main() {
 	color_backtrace::install();
@@ -146,16 +145,18 @@ fn main() {
 	let level: log::LevelFilter = std::env::var("LOG_LEVEL").map(|v|str::parse(&v))
 		.unwrap_or(Ok(level_default))
 		.unwrap_or(level_default);
-	pretty_env_logger::formatted_timed_builder()
+	let logger = pretty_env_logger::formatted_timed_builder()
 		.write_style(env_logger::WriteStyle::Always)
 		.filter_level(level)
-		.init();
+		.build();
+	async_log::Logger::wrap(logger, || 0)
+    	.start(log::LevelFilter::Trace).unwrap();
 
 	let time_start = Utc::now();
 	let success: bool;
-	match parser::main(opt.input) {
+	match parser2::parse(opt.input) {
 		Err(err) => {
-			error!("{}", err);
+			error!("{:?}", err);
 			success = false;
 		}
 		Ok(info) => {

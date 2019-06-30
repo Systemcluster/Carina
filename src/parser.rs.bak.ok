@@ -1,0 +1,158 @@
+use std::fmt::Display;
+use std::error::Error;
+use std::iter::Iterator;
+use std::collections::*;
+
+use derive_more::*;
+use itertools::*;
+use unicode_reader::Graphemes;
+use unicode_segmentation::UnicodeSegmentation;
+
+
+mod result;
+use result::*;
+
+
+
+type Token<'a> = &'a str;
+type Input<'a> = &'a [Token<'a>];
+type ParseResult<Result> = Option<Result>;
+
+
+fn advance(input: &mut Input, by: usize) {
+	*input = &input[by..];
+}
+
+
+
+fn is_special(token: Token) -> bool {
+	[	" ", "#", ":", ".", ",",  "[", "]", "{", "}",
+		"(", ")", "/", "\\", "\"", "\n", "\r\n", "\t"
+	].contains(&token)
+}
+fn is_invalid(token: Token) -> bool {
+	for i in 0x00..0x1F {
+		if i != 0x09 && i != 0x0A && i != 0x0D // allow \t, \n, \r
+		&& std::str::from_utf8(&[i]) == Ok(token) {
+			return true;
+		}
+	}
+	false
+}
+
+
+
+fn map<P, M, A, R>(parser: P, map_fn: M) -> impl Fn(&mut Input) -> ParseResult<R>
+where
+    P: Fn(&mut Input) -> ParseResult<A>,
+    M: Fn(A) -> R
+{
+    move |input| parser(input).map(|result| map_fn(result))
+}
+
+fn discard<P, A>(parser: P) -> impl Fn(&mut Input) -> ParseResult<()>
+where
+    P: Fn(&mut Input) -> ParseResult<A>
+{
+	move |input| parser(input).map(|result|())
+}
+
+fn any<'a, R>(of: &'a [impl Fn(&mut Input) -> ParseResult<R>]) -> impl Fn(&mut Input) -> ParseResult<R> + 'a {
+	move |input| {
+		for option in of {
+			let result = option(input);
+			match result {
+				Some(_) => return result,
+				_ => continue
+			}
+		}
+		None
+	}
+}
+
+fn multiple<P, R>(parser: P) -> impl Fn(&mut Input) -> ParseResult<Vec<R>>
+where
+    P: Fn(&mut Input) -> ParseResult<R>
+{
+	move |input| {
+		let mut result = Vec::new();
+		while let Some(next) = parser(input) {
+			result.push(next);
+		}
+		if result.is_empty() {
+			return None;
+		}
+		Some(result)
+	}
+}
+
+
+
+fn literal(expected: &'static str) -> impl Fn(&mut Input) -> ParseResult<bool> {
+	move |input| {
+		let len = expected.graphemes(true).count();
+		let next = input.iter().take(len).join("");
+		println!("↶ matching {:?} with {:?}", next, expected);
+		if next == expected {
+			advance(input, len);
+			Some(true)
+		}
+		else {
+			None
+		}
+	}
+}
+
+fn newline() -> impl Fn(&mut Input) -> ParseResult<()> {
+	|input| {
+		discard(any(&[
+			literal("\r\n"),
+			literal("\n"),
+			literal("\r"),
+		]))(input)
+	}
+}
+
+fn space() -> impl Fn(&mut Input) -> ParseResult<()> {
+	|input| {
+		discard(literal(" "))(input)
+	}
+}
+
+fn identifier(input: &mut Input) -> ParseResult<String> {
+	let iter = input.iter();
+	let mut id = String::new();
+	for next in iter {
+		if is_invalid(next) {
+			break;
+		}
+		if is_special(next) {
+			break;
+		}
+		id.push_str(next);
+	}
+	if id.is_empty() {
+		return None;
+	}
+	advance(input, id.len());
+	Some(id)
+}
+
+
+
+pub fn main(input: std::path::PathBuf) -> Result<SuccessInfo, RuntimeError> {
+	let name = input.file_stem()?.to_owned().to_str()?;
+	let source = std::fs::read_to_string(input)?;
+	let source = source.as_str().graphemes(true).collect::<Vec<_>>();
+	let iter = &mut &source[..];
+
+	println!("{:?}", literal("f")(iter));
+	println!("{:?}", literal("unction")(iter));
+	println!("{:?}", literal("no")(iter));
+	println!("{:?}", discard(multiple(space()))(iter));
+	println!("{:?}", literal("calls")(iter));
+	println!("{:?}", multiple(map(newline(), |i|"<newline>"))(iter));
+	println!("{:?}", identifier(iter));
+
+	Ok(SuccessInfo{message: String::from("Success!")})
+}

@@ -1,7 +1,7 @@
-use std::fmt::Display;
-use std::error::Error;
+use std::fmt::{Display, Debug};
 use std::iter::Iterator;
 use std::collections::*;
+use std::ops::*;
 
 use derive_more::*;
 use itertools::*;
@@ -11,37 +11,63 @@ use unicode_segmentation::UnicodeSegmentation;
 
 mod result;
 use result::*;
-use ParseError::*;
-
+use result::ParseError::*;
 
 
 type Token<'a> = &'a str;
 type OwnedToken = String;
 
-#[derive(Debug, Clone, Copy)]
+
+trait InputIterItem = Debug + Display + Into<String> + AsRef<str> + PartialEq + Eq + ToOwned;
+// trait InputIterItem: Debug + Display + Into<String> + AsRef<str> + PartialEq + Eq + ToOwned {}
+// impl<T> InputIterItem for T where T: Debug + Display + Into<String> + AsRef<str> + PartialEq + Eq + ToOwned {}
+trait InputIter = Clone + Debug + Iterator::<Item: InputIterItem>;
+
+
+#[derive(Debug, Clone)]
 struct InputContext
 {
-	indent: usize
+	indent: usize,
 }
-#[derive(Debug, Clone, Copy)]
-struct Input<'a>
+
+#[derive(Debug, Clone)]
+struct Input<I: Clone>
 {
-	source: &'a [Token<'a>],
+	source: I,
 	context: InputContext
+}
+impl<I: InputIter> Input<I> {
+	fn from(source: I) -> Self {
+		Input {
+			source,
+			context: InputContext {
+				indent: 0
+			}
+		}
+	}
+	fn advance(&mut self, by: usize)
+	{
+		for i in 0..by {
+			debug!("..ad..  {}", self.source.next().unwrap());
+		}
+	}
+}
+
+type InputRef<'a, I> = &'a mut Input<I>;
+
+trait Error {
+
 }
 
 type ParseResult<R> = Result<R, Vec<ParseError>>;
-trait ParseFn<R> = Fn(&mut Input) -> ParseResult<R>;
-
-
-fn advance(input: &mut Input, by: usize)
-{
-	input.source = &input.source[by..];
-}
+trait ParseFn<R, I> = Fn(&mut Input<I>) -> ParseResult<R>;
 
 
 
-fn is_special(token: &Token) -> bool
+
+
+
+fn is_special(token: Token) -> bool
 {
 	for i in 0x20..=0x2F {
 		if std::str::from_utf8(&[i]) == Ok(token) {
@@ -66,7 +92,7 @@ fn is_special(token: &Token) -> bool
 	false
 }
 
-fn is_invalid(token: &Token) -> bool {
+fn is_invalid(token: Token) -> bool {
 	for i in 0x00..=0x1F {
 		if i != 0x09 && i != 0x0A && i != 0x0D // allow \t, \n, \r
 		&& std::str::from_utf8(&[i]) == Ok(token) {
@@ -76,7 +102,7 @@ fn is_invalid(token: &Token) -> bool {
 	false
 }
 
-fn is_newline(token: &Token) -> bool
+fn is_newline(token: Token) -> bool
 {
 	[	"\r\n", "\n", "\r"
 	].contains(&token)
@@ -86,31 +112,40 @@ fn is_newline(token: &Token) -> bool
 // ---
 
 
-fn map<A, R>(
-    parser: impl ParseFn<A>,
-    map_fn: impl Fn(A) -> R
+fn map<A, R, I: InputIter>(
+    parser: impl ParseFn<A, I>,
+    map_fn: impl Fn(A) -> ParseResult<R>
 )
--> impl ParseFn<R>
+-> impl ParseFn<R, I>
 {
-    move |input: &mut Input| parser(input).map(|result| map_fn(result))
+    move |input: InputRef<I>| parser(input).and_then(|result| map_fn(result))
+}
+
+fn map_err<R, I: InputIter>(
+    parser: impl ParseFn<R, I>,
+    map_fn: impl Fn(Vec<ParseError>) -> ParseResult<R>,
+)
+-> impl ParseFn<R, I>
+{
+    move |input: InputRef<I>| parser(input).or_else(|result| map_fn(result))
 }
 
 
-fn discard<A>(
-	parser: impl ParseFn<A>
+fn discard<A, I: InputIter>(
+	parser: impl ParseFn<A, I>
 )
--> impl ParseFn<()>
+-> impl ParseFn<(), I>
 {
-	move |input: &mut Input| parser(input).map(|result|())
+	move |input: InputRef<I>| parser(input).map(|result|())
 }
 
 
-fn any_of<'a, R>(
-	of: &'a [&dyn ParseFn<R>]
+fn any_of<'a, R, I: InputIter>(
+	of: &'a [&dyn ParseFn<R, I>]
 )
--> impl ParseFn<R> + 'a
+-> impl ParseFn<R, I> + 'a
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let mut errors = Vec::new();
 		for option in of {
 			let result = option(input);
@@ -127,12 +162,12 @@ fn any_of<'a, R>(
 }
 
 
-fn zero_or_more<R>(
-	parser: impl ParseFn<R>
+fn zero_or_more<R, I: InputIter>(
+	parser: impl ParseFn<R, I>
 )
--> impl ParseFn<Vec<R>>
+-> impl ParseFn<Vec<R>, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let mut result = Vec::new();
 		while let Ok(next) = parser(input) {
 			result.push(next);
@@ -142,12 +177,12 @@ fn zero_or_more<R>(
 }
 
 
-fn one_or_more<R>(
-	parser: impl ParseFn<R>
+fn one_or_more<R, I: InputIter>(
+	parser: impl ParseFn<R, I>
 )
--> impl ParseFn<Vec<R>>
+-> impl ParseFn<Vec<R>, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let mut result = Vec::new();
 		let last_err;
 		loop  {
@@ -167,29 +202,29 @@ fn one_or_more<R>(
 }
 
 
-fn optional<R>(
-	parser: impl ParseFn<R>
+fn optional<R, I: InputIter>(
+	parser: impl ParseFn<R, I>
 )
--> impl ParseFn<Option<R>>
+-> impl ParseFn<Option<R>, I>
 {
-	move |input: &mut Input| Ok(parser(input).ok())
+	move |input: InputRef<I>| Ok(parser(input).ok())
 }
 
 
-fn pair<RL, RR>(
-	parserl: impl ParseFn<RL>,
-	parserr: impl ParseFn<RR>
+fn pair<RL, RR, I: InputIter>(
+	parserl: impl ParseFn<RL, I>,
+	parserr: impl ParseFn<RR, I>
 )
--> impl ParseFn<(RL, RR)>
+-> impl ParseFn<(RL, RR), I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		#[allow(clippy::clone_double_ref)]
 		let input_copy = &mut input.clone();
 		match parserl(input_copy) {
 			Ok(resultl) => {
 				match parserr(input_copy) {
 					Ok(resultr) => {
-						*input = *input_copy;
+						*input = (*input_copy).clone();
 						Ok((resultl, resultr))
 					},
 					Err(resultr) => {
@@ -205,40 +240,40 @@ fn pair<RL, RR>(
 }
 
 
-fn left<RL, RR>(
-	parserl: impl ParseFn<RL>,
-	parserr: impl ParseFn<RR>
+fn left<RL, RR, I: InputIter>(
+	parserl: impl ParseFn<RL, I>,
+	parserr: impl ParseFn<RR, I>
 )
--> impl ParseFn<RL>
+-> impl ParseFn<RL, I>
 {
-	map(pair(parserl, parserr), |(resultl, resultr)|resultl)
+	map(pair(parserl, parserr), |(resultl, resultr)|Ok(resultl))
 }
 
 
-fn right<RL, RR>(
-	parserl: impl ParseFn<RL>,
-	parserr: impl ParseFn<RR>
+fn right<RL, RR, I: InputIter>(
+	parserl: impl ParseFn<RL, I>,
+	parserr: impl ParseFn<RR, I>
 )
--> impl ParseFn<RR>
+-> impl ParseFn<RR, I>
 {
-	map(pair(parserl, parserr), |(resultl, resultr)|resultr)
+	map(pair(parserl, parserr), |(resultl, resultr)|Ok(resultr))
 }
 
 
-fn pred<R>(
-	parser: impl ParseFn<R>,
+fn pred<R, I: InputIter>(
+	parser: impl ParseFn<R, I>,
 	pred_fn: impl Fn(&R) -> bool,
 	err_fn: impl Fn(&R) -> ParseResult<R>
 )
--> impl ParseFn<R> 
+-> impl ParseFn<R, I> 
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		#[allow(clippy::clone_double_ref)]
 		let input_copy = &mut input.clone();
 		match parser(input_copy) {
 			Ok(result) => {
 				if pred_fn(&result) {
-					*input = *input_copy;
+					*input = (*input_copy).clone();
 					Ok(result)
 				}
 				else {
@@ -253,12 +288,12 @@ fn pred<R>(
 }
 
 
-fn any_until<U>(
-	until: impl ParseFn<U>
+fn any_until<U, I: InputIter>(
+	until: impl ParseFn<U, I>
 )
--> impl ParseFn<String>
+-> impl ParseFn<String, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let mut comment = String::new();
 		let mut last_err = vec!();
 		while let Err(err) = until(input)  {
@@ -266,7 +301,7 @@ fn any_until<U>(
 			let next = next(input);
 			if let Ok(next) = next {
 				comment.push_str(next.as_str());
-				advance(input, 1);
+				input.advance(1);
 			}
 			else {
 				return next;
@@ -280,13 +315,13 @@ fn any_until<U>(
 }
 
 
-fn all_until<R, U>(
-	parser: impl ParseFn<R>,
-	until: impl ParseFn<U>
+fn all_until<R, U, I: InputIter>(
+	parser: impl ParseFn<R, I>,
+	until: impl ParseFn<U, I>
 )
--> impl ParseFn<Vec<R>>
+-> impl ParseFn<Vec<R>, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let mut result = Vec::new();
 		loop {
 			match parser(input) {
@@ -304,17 +339,20 @@ fn all_until<R, U>(
 }
 
 
-fn literal(
+fn literal<I: InputIter>(
 	expected: &'static str
 )
--> impl ParseFn<bool>
+-> impl ParseFn<bool, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		let len = expected.graphemes(true).count();
-		let next = input.source.iter().take(len).join("");
-		debug!("{}⮬ matching literal {:?} with {:?}", String::from("   ").repeat(input.context.indent-1), next, expected);
-		if next == expected {
-			advance(input, len);
+		let next = input.source.by_ref().take(len).join("");
+		let dx = String::from("   ").repeat(input.context.indent-1);
+		debug!("{}⮬ matching found literal {:?} with expected {:?}", dx, next, expected);
+		if next.as_str() == expected {
+			debug!("{}  found, index {}", dx, input.context.indent-1);
+			input.advance(len);
+			debug!("{}  index now {} after advancing {}", dx, input.context.indent-1, len);
 			Ok(true)
 		}
 		else {
@@ -324,19 +362,23 @@ fn literal(
 }
 
 
-fn debug<R>(message: &'static str, parser: impl ParseFn<R>) -> impl ParseFn<R> {
-	move |input: &mut Input| {
+fn debug<R, I: InputIter>(
+	message: &'static str, parser: impl ParseFn<R, I>
+) 
+-> impl ParseFn<R, I>
+{
+	move |input: InputRef<I>| {
 		debug!("{}{}", String::from("   ").repeat(input.context.indent-1), message);
 		parser(input)
 	}
 }
 
-fn peek<R>(
-	parser: impl ParseFn<R>,
+fn peek<R, I: InputIter>(
+	parser: impl ParseFn<R, I>,
 )
--> impl ParseFn<R>
+-> impl ParseFn<R, I>
 {
-	move |input: &mut Input| {
+	move |input: InputRef<I>| {
 		#[allow(clippy::clone_double_ref)]
 		let input_copy = &mut input.clone();
 		parser(input_copy)
@@ -347,7 +389,7 @@ fn peek<R>(
 // ---
 
 
-fn newline(input: &mut Input) -> ParseResult<()>
+fn newline<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
 	discard(right(
 		zero_or_more(tab), 
@@ -359,11 +401,11 @@ fn newline(input: &mut Input) -> ParseResult<()>
 }
 
 
-fn next(input: &mut Input) -> ParseResult<OwnedToken>
+fn next<I: InputIter>(input: InputRef<I>) -> ParseResult<OwnedToken>
 {
-	let result = input.source.iter().next();
-	if let Some(&result) = result {
-		advance(input, 1);
+	let result = input.source.next();
+	if let Some(result) = result {
+		input.advance(1);
 		Ok(result.into())
 	}
 	else {
@@ -372,68 +414,68 @@ fn next(input: &mut Input) -> ParseResult<OwnedToken>
 }
 
 
-fn space(input: &mut Input) -> ParseResult<()>
+fn space<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
 	discard(literal(" "))(input)
 }
 
-fn tab(input: &mut Input) -> ParseResult<()>
+fn tab<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
 	discard(literal("\t"))(input)
 }
 
-fn eof(input: &mut Input) -> ParseResult<()>
+fn eof<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
-	if input.source.is_empty() {
+	if input.source.by_ref().peekable().peek().is_some() {
 		Ok(())
 	}
 	else {
-		Err(vec!(ExpectedCharacter{expected: "<eof>".into(), found: input.source[0].into()}))
+		Err(vec!(ExpectedCharacter{expected: "<eof>".into(), found: format!("{:?}", input.source.by_ref().peekable().peek()) }))
 	}
 }
 
-fn indent(input: &mut Input) -> ParseResult<()>
+fn indent<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
 	if input.context.indent > 1 {
-		let mut iter = input.source.iter();
+		let iter = input.source.by_ref();
 		for i in 1..input.context.indent {
-			if let Some(&next) = iter.next() {
-				if next != "\t" {
-					return Err(vec!(ExpectedCharacter{expected: "\t".into(), found: next.into()}));
+			if let Some(next) = iter.next() {
+				if next.as_ref() != "\t" {
+					return Err(vec!(ExpectedCharacter{expected: "\t".into(), found: format!("{}", next)}));
 				}
 			}
 			else {
 				return Err(vec!(UnexpectedEOF{line:0,position:0}));
 			}
 		}
-		advance(input, input.context.indent - 1);
+		input.advance(input.context.indent - 1);
 	}
 	Ok(())
 }
 
 
-fn identifier(input: &mut Input) -> ParseResult<String>
+fn identifier<I: InputIter>(input: InputRef<I>) -> ParseResult<String>
 {
-	let iter = input.source.iter();
+	let iter = input.source.clone();
 	let mut id = String::new();
 	let mut result = Err(vec!());
 	for next in iter {
-		if is_invalid(next) {
-			result = Err(vec!(UnexpectedCharacter{found: (*next).into()}));
+		if is_invalid(next.as_ref()) {
+			result = Err(vec!(UnexpectedCharacter{found: format!("{}", next)}));
 			break;
 		}
-		if is_special(next) {
-			result = Err(vec!(UnexpectedCharacter{found: (*next).into()}));
+		if is_special(next.as_ref()) {
+			result = Err(vec!(UnexpectedCharacter{found: format!("{}", next)}));
 			break;
 		}
-		if is_newline(next) {
-			result = Err(vec!(UnexpectedCharacter{found: (*next).into()}));
+		if is_newline(next.as_ref()) {
+			result = Err(vec!(UnexpectedCharacter{found: format!("{}", next)}));
 			break;
 		}
-		id.push_str(next);
+		id.push_str(next.as_ref());
 	}
 	if !id.is_empty() {
-		advance(input, id.len());
+		input.advance(id.len());
 		result = Ok(id);
 	}
 	result
@@ -445,13 +487,14 @@ fn identifier(input: &mut Input) -> ParseResult<String>
 enum SyntaxElement {
 	Expression(Expression),
 	Comment(Comment),
+	Invalid
 }
 
 
 type Comment = String;
-fn comment(input: &mut Input) -> ParseResult<SyntaxElement>
+fn comment<I: InputIter>(input: InputRef<I>) -> ParseResult<SyntaxElement>
 {
-	map(right(literal("#"), any_until(newline)), SyntaxElement::Comment)(input)
+	map(right(literal("#"), any_until(newline)), |result|Ok(SyntaxElement::Comment(result)))(input)
 }
 
 #[derive(Debug, Clone)]
@@ -459,21 +502,26 @@ struct Expression {
 	identifiers: Vec<String>,
 	block: Block
 }
-fn expression(input: &mut Input) -> ParseResult<SyntaxElement>
+fn expression<I: InputIter>(input: InputRef<I>) -> ParseResult<SyntaxElement>
 {
-	map(
+	let i = input.context.indent-1;
+	map_err(map(
 		left(
 			pair(one_or_more(left(identifier, zero_or_more(space))), block), 
 			peek(any_of(&[&newline, &eof]))
 		), 
 		|(identifiers, block)| {
-			SyntaxElement::Expression(Expression {
+			Ok(SyntaxElement::Expression(Expression {
 				identifiers,
 				block
-			})
+			}))
 		}
-	)(input)
+	), move |err| {
+		error!("{}❗ expression error {:?}", String::from("   ").repeat(i).to_owned(), err);
+		Ok(SyntaxElement::Invalid)
+	})(input)
 }
+
 
 
 #[derive(Debug, Clone)]
@@ -482,19 +530,30 @@ enum Block {
 	Malformed(Vec<ParseError>),
 	None
 }
-fn block(input: &mut Input) -> ParseResult<Block>
+fn block<I: InputIter>(input: InputRef<I>) -> ParseResult<Block>
 {
 	let debug_indent = String::from("   ").repeat(input.context.indent);
 
 	input.context.indent += 1;
 	debug!("{}⇲ NEW BLOCK with indent {}", debug_indent, input.context.indent);
 
-	let result = zero_or_more(right(
-		debug("⬤ newline", zero_or_more(newline)),
-		right(indent, any_of(&[
-			&debug("⬤ expression!", expression),
-			&debug("⬤ comment!", comment),
-		])),
+	let result = zero_or_more(map(
+		map_err(
+			right(
+				debug("⬤ newline", zero_or_more(newline)),
+				right(indent, any_of(&[
+					&debug("⬤ expression!", expression),
+					&debug("⬤ comment!", comment),
+				]))
+			),
+			|err|{
+				error!("{}❗ block error {:?}", debug_indent, err);
+				Err(err)
+			}
+		),
+		|result|{
+			Ok(result)
+		}
 	))(input);
 	
 	// let result = all_until(
@@ -534,18 +593,12 @@ fn block(input: &mut Input) -> ParseResult<Block>
 }
 
 
-
 pub fn main(input: std::path::PathBuf) -> Result<SuccessInfo, ParseError> {
 	let name = input.file_stem()?.to_owned().to_str()?;
 	let source = std::fs::read_to_string(input)?;
 	let source = source.as_str().graphemes(true).collect::<Vec<_>>();
-	let iter = &mut &source[..];
-	let input = &mut Input {
-		source: iter,
-		context: InputContext {
-			indent: 0
-		}
-	};
+	let input = &mut Input::from(source.into_iter());
+
 	let result = block(input);
 	info!("{:#?}", result);
 
@@ -627,10 +680,10 @@ const parser_expected: &str = r#"Ok(
 )"#;
 
 
-// fn dedent(input: &mut Input) -> ParseResult<()>
+// fn dedent(input: InputRef<I>) -> ParseResult<()>
 // {
 // 	let mut counter = 1;
-// 	let mut iter = input.source.iter();
+// 	let mut iter = input.source;
 // 	loop {
 // 		match iter.next() {
 // 			Some(&"\t") => counter += 1,

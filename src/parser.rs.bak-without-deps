@@ -1,0 +1,163 @@
+use std::fmt::Display;
+use std::error::Error;
+use std::iter::Iterator;
+use std::collections::*;
+
+use itertools::*;
+
+mod result;
+use result::*;
+
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Identifier {
+	name: String
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Block {
+	expressions: Vec<Expression>
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Expression {
+	identifiers: Vec<Identifier>,
+	blocks: Vec<Block>
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Element {
+	Identifier(Identifier),
+	Block(Block),
+	Expression(Expression)
+}
+
+
+
+type Token<'a> = &'a str;
+type Input<'a> = &'a [Token<'a>];
+type ParseResult<Result> = Option<Result>;
+
+
+
+fn advance(input: &mut Input, by: usize) {
+	*input = &input[by..];
+}
+
+
+
+fn is_special(token: Token) -> bool {
+	[	" ", "#", ":", ".", ",",  "[", "]", "{", "}",
+		"(", ")", "/", "\\", "\"", "\n", "\r\n", "\t"
+	].contains(&token)
+}
+fn is_invalid(token: Token) -> bool {
+	for i in 0x00..0x1F {
+		if i != 0x09 && i != 0x0A && i != 0x0D // allow \t, \n, \r
+		&& std::str::from_utf8(&[i]) == Ok(token) {
+			return true;
+		}
+	}
+	false
+}
+
+
+
+fn any<'a, R>(of: &'a [fn(&mut Input) -> ParseResult<R>]) -> impl Fn(&mut Input) -> ParseResult<R> + '_ {
+	move |input| {
+		for option in of {
+			let result = option(input);
+			match result {
+				Some(_) => return result,
+				_ => continue
+			}
+		}
+		None
+	}
+}
+
+fn map<'a, P, M, A, R>(parser: P, map_fn: M) -> impl Fn(&mut Input) -> ParseResult<R>
+where
+    P: Fn(&mut Input) -> ParseResult<A>,
+    M: Fn(A) -> R
+{
+    move |input| parser(input).map(|result| map_fn(result))
+}
+
+fn discard<'a, P, A>(parser: P) -> impl Fn(&mut Input) -> ParseResult<()>
+where
+    P: Fn(&mut Input) -> ParseResult<A>
+{
+	move |input| parser(input).map(|result|())
+}
+
+
+
+fn match_literal(expected: &'static str) -> impl Fn(&mut Input) -> ParseResult<bool> {
+	move |input| {
+		let len = expected.graphemes(true).count();
+		let next = input.iter().take(len).join("");
+		println!("↶ matching {:?} with {:?}", next, expected);
+		if next == expected {
+			advance(input, len);
+			Some(true)
+		}
+		else {
+			None
+		}
+	}
+}
+
+fn newline(input: &mut Input) -> ParseResult<()> {
+	discard(any(&[
+		|i|match_literal("\r\n")(i),
+		|i|match_literal("\n\r")(i),
+		|i|match_literal("\n")(i),
+	]))(input)
+}
+
+fn space(input: &mut Input) -> ParseResult<()> {
+	discard(match_literal(" "))(input)
+}
+
+fn identifier(input: &mut Input) -> ParseResult<String> {
+	let iter = input.iter();
+	let mut id = String::new();
+	for next in iter {
+		if is_invalid(next) {
+			break;
+		}
+		if is_special(next) {
+			break;
+		}
+		id.push_str(next);
+	}
+	if id.is_empty() {
+		return None;
+	}
+	advance(input, id.len());
+	Some(id)
+}
+
+
+
+pub fn main(input: std::path::PathBuf) -> Result<SuccessInfo, RuntimeError> {
+	let source = "function calls
+
+blocks
+	like this";
+
+	let source = source.split("").collect::<Vec<_>>();
+	let iter = &mut &source[1..];
+
+	println!("{:?}", match_literal("f")(iter));
+	println!("{:?}", match_literal("unction")(iter));
+	println!("{:?}", match_literal("no")(iter));
+	println!("{:?}", space(iter));
+	println!("{:?}", match_literal("calls")(iter));
+	println!("{:?}", newline(iter));
+	println!("{:?}", map(newline, |i|i)(iter));
+	println!("{:?}", identifier(iter));
+
+	Ok(SuccessInfo{message: String::from("Success!")})
+}

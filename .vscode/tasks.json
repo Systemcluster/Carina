@@ -52,5 +52,37 @@
                 "clear": false
             }
         }
+        {
+            "label": "run",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "test",
+                "--",
+                "examples/example.ca"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "RUST_BACKTRACE": "1",
+                    "LOG_LEVEL": "debug"
+                }
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            }
+        }
     ]
 }
