@@ -1,3 +1,7 @@
+///
+/// Carina Programming Language Parser
+///
+
 use std::fmt::{Display, Debug};
 use std::iter::{Iterator, Peekable};
 use derive_more::*;
@@ -25,5 +29,7 @@ pub fn parse(input: std::path::PathBuf) -> Result<SuccessInfo, std::io::Error> {
 		line: 0,
 		position: 0
 	} };
-	Ok(SuccessInfo{message: format!("{:?}", test(input))})
+	let result = all_chars(input);
+	let result = SuccessInfo{message: format!("{:?}", result)};
+	Ok(result)
 }

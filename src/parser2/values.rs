@@ -67,5 +67,5 @@ pub fn is_tab(token: impl InputIterItem) -> bool {
 /// Detect regular characters
 /// 
 pub fn is_regular(token: impl InputIterItem) -> bool {
-	is_valid(token) && !is_special(token) && !is_newline(token)
+	is_valid(&token) && !is_special(&token) && !is_newline(&token)
 }

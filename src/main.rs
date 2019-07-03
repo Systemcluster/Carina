@@ -46,7 +46,7 @@
 #![feature(thread_local)]
 #![feature(trace_macros)]
 #![feature(trait_alias)]
-// #![feature(trivial_bounds)]
+#![feature(trivial_bounds)]
 #![feature(try_blocks)]
 #![feature(type_alias_enum_variants)]
 #![feature(type_ascription)]
@@ -67,7 +67,7 @@
 #![feature(exact_size_is_empty)]
 #![feature(extra_log_consts)]
 // #![feature(fix_error)]
-#![feature(fn_traits, fnbox)]
+#![feature(fn_traits)]
 #![feature(gen_future)]
 #![feature(generator_trait)]
 #![feature(hash_raw_entry)]
@@ -100,6 +100,11 @@
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
 #![allow(clippy::useless_format)]
+
+
+///
+/// Carina Programming Language Interpreter
+///
 
 
 #[global_allocator] 
@@ -145,12 +150,12 @@ fn main() {
 	let level: log::LevelFilter = std::env::var("LOG_LEVEL").map(|v|str::parse(&v))
 		.unwrap_or(Ok(level_default))
 		.unwrap_or(level_default);
-	let logger = pretty_env_logger::formatted_timed_builder()
+	pretty_env_logger::formatted_timed_builder()
 		.write_style(env_logger::WriteStyle::Always)
 		.filter_level(level)
-		.build();
-	async_log::Logger::wrap(logger, || 0)
-    	.start(log::LevelFilter::Trace).unwrap();
+		.init();
+	// async_log::Logger::wrap(logger, || 0)
+    // 	.start(log::LevelFilter::Trace).unwrap();
 
 	let time_start = Utc::now();
 	let success: bool;
@@ -175,7 +180,7 @@ fn main() {
 		time_seconds = t as f64 / 1000.0 / 1000.0;
 	}
 	else {
-		time_seconds = (time_elapsed.num_milliseconds() as f64) / 1000.0;
+		time_seconds = time_elapsed.num_milliseconds() as f64 / 1000.0;
 	}
 	if success {
 		info!("✔ elapsed time: {:.5}s", time_seconds);

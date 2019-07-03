@@ -9,9 +9,8 @@ use derive_more::*;
 use super::values::*;
 
 
-
-pub trait InputIterItem = Debug + Display + Clone + Into<String> + AsRef<str> + PartialEq + Eq + ToOwned;
-pub trait InputIter = Debug + Clone + Iterator::<Item: InputIterItem>;
+pub trait InputIterItem = Debug + Display + Clone + AsRef<str> + PartialEq + Eq;
+pub trait InputIter<T: InputIterItem> = Debug + Clone + Iterator::<Item = T>;
 
 
 #[derive(Debug, Clone)]
@@ -25,27 +24,40 @@ pub enum Error {
 		context: InputContext,
 		expected: String,
 		found: String
-	}
+	},
+	NoneMatched,
+
 }
 
 
 #[derive(Debug, Clone)]
 pub enum Output<R> {
 	Ok(R),
+	Partial{result: R, error: Error},
 	Error(Error),
 	Critical(Error)
 }
 impl<R> Output<R> {
-	pub fn map<T: From<R>>(self) -> Output<T> {
+	pub fn map_value<T: From<R>>(self) -> Output<T> {
 		match self {
 			Self::Ok(x) => Output::Ok(x.into()),
+			Self::Partial{result, error}
+				=> Output::Partial {
+					result: result.into(),
+					error
+				},
 			Self::Error(x) => Output::Error(x),
 			Self::Critical(x) => Output::Critical(x)
 		}
 	}
-	pub fn discard(self) -> Output<()> {
+	pub fn discard_value(self) -> Output<()> {
 		match self {
 			Self::Ok(x) => Output::Ok(()),
+			Self::Partial{result, error}
+				=> Output::Partial {
+					result: (),
+					error
+				},
 			Self::Error(x) => Output::Error(x),
 			Self::Critical(x) => Output::Critical(x)
 		}
@@ -54,18 +66,15 @@ impl<R> Output<R> {
 impl<R> Try for Output<R> {
 	type Ok = R;
 	type Error = Self;
-	#[inline]
     fn into_result(self) -> Result<R, Output<R>> {
         match self {
 			Self::Ok(r) => Result::Ok(r),
 			_ => Result::Err(self)
 		}
     }
-    #[inline]
     fn from_ok(v: R) -> Self {
 		Self::Ok(v)
     }
-    #[inline]
     fn from_error(v: Self) -> Self {
         v
     }
@@ -95,7 +104,7 @@ pub struct Input<I: InputIter>
 	pub context: InputContext
 }
 impl<I: InputIter> Input<I> {
-	pub fn next(&mut self) -> Output<&I::Item> {
+	pub fn next(&mut self) -> Output<I::Item> {
 		match self.iter.next() {
 			None => {
 				Output::Critical(Error::UnexpectedEOF{
@@ -103,12 +112,12 @@ impl<I: InputIter> Input<I> {
 					expected: format!("1 more character")
 				})
 			},
-			Some(ref x) if is_newline(x.as_ref()) => {
+			Some(x) if is_newline(x.as_ref()) => {
 				self.context.line += 1;
 				self.context.position = 0;
 				Output::Ok(x)
 			}
-			Some(ref x) => {
+			Some(x) => {
 				self.context.position += 1;
 				Output::Ok(x)
 			}
@@ -139,6 +148,6 @@ impl<I: InputIter> Input<I> {
 	}
 }
 
-pub type InputRef<'a, I: InputIter> = &'a mut Input<I>;
+pub type InputRef<'a, I> = &'a mut Input<I>;
 
-pub trait ParseFn<'a, I: InputIter + 'a, R> = Fn(InputRef<'a, I>) -> Output<R>;
+pub trait ParseFn<I: InputIter, R> = Fn(InputRef<I>) -> Output<R>;

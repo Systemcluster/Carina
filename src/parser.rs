@@ -265,7 +265,7 @@ fn pred<R, I: InputIter>(
 	pred_fn: impl Fn(&R) -> bool,
 	err_fn: impl Fn(&R) -> ParseResult<R>
 )
--> impl ParseFn<R, I> 
+-> impl ParseFn<R, I>
 {
 	move |input: InputRef<I>| {
 		#[allow(clippy::clone_double_ref)]
@@ -364,7 +364,7 @@ fn literal<I: InputIter>(
 
 fn debug<R, I: InputIter>(
 	message: &'static str, parser: impl ParseFn<R, I>
-) 
+)
 -> impl ParseFn<R, I>
 {
 	move |input: InputRef<I>| {
@@ -392,10 +392,10 @@ fn peek<R, I: InputIter>(
 fn newline<I: InputIter>(input: InputRef<I>) -> ParseResult<()>
 {
 	discard(right(
-		zero_or_more(tab), 
+		zero_or_more(tab),
 		pred(
-			next, 
-			|r|is_newline(&r.as_str()), 
+			next,
+			|r|is_newline(&r.as_str()),
 			|r|Err(vec!(ExpectedCharacter{expected: "<newline>".into(), found: r.into()}))
 		)))(input)
 }
@@ -507,9 +507,9 @@ fn expression<I: InputIter>(input: InputRef<I>) -> ParseResult<SyntaxElement>
 	let i = input.context.indent-1;
 	map_err(map(
 		left(
-			pair(one_or_more(left(identifier, zero_or_more(space))), block), 
+			pair(one_or_more(left(identifier, zero_or_more(space))), block),
 			peek(any_of(&[&newline, &eof]))
-		), 
+		),
 		|(identifiers, block)| {
 			Ok(SyntaxElement::Expression(Expression {
 				identifiers,
@@ -555,7 +555,7 @@ fn block<I: InputIter>(input: InputRef<I>) -> ParseResult<Block>
 			Ok(result)
 		}
 	))(input);
-	
+
 	// let result = all_until(
 	// 	right(
 	// 		debug("⬤ newline", zero_or_more(newline)),
