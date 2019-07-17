@@ -7,7 +7,7 @@ use super::types::Error::*;
 use super::values::*;
 
 
-pub fn eof(input: InputRef<impl InputIter>) -> Output<()> {
+pub fn eof<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<()> {
 	match input.clone().next() {
 		Ok(x) => Error(UnexpectedCharacter{
 			context: input.context,
@@ -17,7 +17,7 @@ pub fn eof(input: InputRef<impl InputIter>) -> Output<()> {
 		_ => Ok(()),
 	}
 }
-pub fn tab(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
+pub fn tab<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	if is_tab(x.as_ref()) {
 		return Ok(x);
@@ -28,7 +28,7 @@ pub fn tab(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
 		found: format!("{}", x)
 	})
 }
-pub fn space(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
+pub fn space<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	if is_space(&x) {
 		return Ok(x);
@@ -39,12 +39,23 @@ pub fn space(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
 		found: format!("{}", x)
 	})
 }
+pub fn newline<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
+	let x = input.next()?;
+	if is_newline(&x) {
+		return Ok(x);
+	}
+	Error(UnexpectedCharacter{
+		context: input.context,
+		expected: format!("<space>"),
+		found: format!("{}", x)
+	})
+}
 
-pub fn any_char(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
+pub fn any_char<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	Ok(x)
 }
-pub fn any_regular_char(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
+pub fn any_regular_char<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	if is_regular(x.as_ref()) {
 		Ok(x)
@@ -55,7 +66,7 @@ pub fn any_regular_char(input: InputRef<impl InputIter>) -> Output<impl InputIte
 		found: format!("{}", x)
 	})}
 }
-pub fn any_special_char(input: InputRef<impl InputIter>) -> Output<impl InputIterItem> {
+pub fn any_special_char<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	if is_special(x.as_ref()) {
 		Ok(x)
@@ -67,16 +78,16 @@ pub fn any_special_char(input: InputRef<impl InputIter>) -> Output<impl InputIte
 	})}
 }
 
-pub fn wrap<I: InputIter, R>(parser: impl ParseFn<I, R>) -> impl ParseFn<I, R> {
-	move |input: InputRef<I>| -> Output<R> { parser(input) }
+pub fn wrap<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, R> {
+	move |input: InputRef<T, I>| -> Output<R> { parser(input) }
 }
 
-pub fn discard<I: InputIter, R>(parser: impl ParseFn<I, R>) -> impl ParseFn<I, ()> {
-	move |input: InputRef<I>| -> Output<()> { parser(input).discard_value() }
+pub fn discard<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, ()> {
+	move |input: InputRef<T, I>| -> Output<()> { parser(input).discard_value() }
 }
 
-pub fn map<I: InputIter, R, M>(parser: impl ParseFn<I, R>, mapper: impl Fn(R) -> M) -> impl ParseFn<I, M> {
-	move |input: InputRef<I>| {
+pub fn map<T: InputIterItem, I: InputIter<T>, R, M>(parser: impl ParseFn<T, I, R>, mapper: impl Fn(R) -> M) -> impl ParseFn<T, I, M> {
+	move |input: InputRef<T, I>| {
 		match parser(input) {
 			Ok(next) => Ok(mapper(next)),
 			Partial{result, error}
@@ -90,8 +101,8 @@ pub fn map<I: InputIter, R, M>(parser: impl ParseFn<I, R>, mapper: impl Fn(R) ->
 	}
 }
 
-pub fn any_of<'of, I: InputIter, R>(of: &'of [&dyn ParseFn<I, R>]) -> impl ParseFn<I, R> + 'of {
-	move |input: InputRef<I>| -> Output<R> {
+pub fn any_of<'of, T: InputIterItem, I: InputIter<T>, R>(of: &'of [&dyn ParseFn<T, I, R>]) -> impl ParseFn<T, I, R> + 'of {
+	move |input: InputRef<T, I>| -> Output<R> {
 		let input_orig = input.clone();
 		for option in of {
 			match option(input) {
@@ -99,23 +110,22 @@ pub fn any_of<'of, I: InputIter, R>(of: &'of [&dyn ParseFn<I, R>]) -> impl Parse
 				Partial{..} |
 				Error(_) |
 				Critical(_) => {
-					input = &mut input_orig.clone();
+					(*input) = input_orig.clone();
 					continue
 				}
 			}
 		}
-		input = &mut input_orig.clone();
+		(*input) = input_orig.clone();
 		Error(NoneMatched)
 	}
 }
 
-pub fn either<I: InputIter, R: From<L>, L: From<R>, LL, RR>(l: LL, r: RR) -> impl ParseFn<I, R>
-where LL: ParseFn<I, L>, RR: ParseFn<I, R>{
-	move |input: InputRef<I>| {
+pub fn either<T: InputIterItem, I: InputIter<T>, R: From<L>, L: From<R>>(l: impl ParseFn<T, I, L>, r: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, R>{
+	move |input: InputRef<T, I>| {
 		let input_orig = input.clone();
 		let resultl = l(input);
 		if let Ok(_) = resultl { return resultl.map_value(); };
-		input = &mut input_orig.clone();
+		(*input) = input_orig.clone();
 		let resultr = r(input);
 		match resultr {
 			Ok(_) => resultr.map_value(),
@@ -126,15 +136,15 @@ where LL: ParseFn<I, L>, RR: ParseFn<I, R>{
 				resultr.map_value()
 			}
 			_ => {
-				input = &mut input_orig.clone();
+				(*input) = input_orig.clone();
 				resultr.map_value()
 			}
 		}
 	}
 }
 
-pub fn all_until<I: InputIter, R, T>(parser: impl ParseFn<I, R>, until: impl ParseFn<I, T>) -> impl ParseFn<I, Vec<R>> {
-	move |input: InputRef<I>| -> Output<Vec<R>> {
+pub fn all_until<T: InputIterItem, I: InputIter<T>, R, U>(parser: impl ParseFn<T, I, R>, until: impl ParseFn<T, I, U>) -> impl ParseFn<T, I, Vec<R>> {
+	move |input: InputRef<T, I>| -> Output<Vec<R>> {
 		let mut result = Vec::new();
 		loop {
 			match parser(input) {
@@ -165,8 +175,8 @@ pub fn all_until<I: InputIter, R, T>(parser: impl ParseFn<I, R>, until: impl Par
 	}
 }
 
-pub fn zero_or_more<I: InputIter, R>(parser: impl ParseFn<I, R>) -> impl ParseFn<I, Vec<R>> {
-	move |input: InputRef<I>| {
+pub fn zero_or_more<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, Vec<R>> {
+	move |input: InputRef<T, I>| {
 		let mut result = Vec::new();
 		while let Ok(next) = parser(input) {
 			result.push(next);
@@ -175,8 +185,8 @@ pub fn zero_or_more<I: InputIter, R>(parser: impl ParseFn<I, R>) -> impl ParseFn
 	}
 }
 
-pub fn multiple<I: InputIter, R>(times: usize, parser: impl ParseFn<I, R>) -> impl ParseFn<I, Vec<R>> {
-	move |input: InputRef<I>| -> Output<Vec<R>> {
+pub fn multiple<T: InputIterItem, I: InputIter<T>, R>(times: usize, parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, Vec<R>> {
+	move |input: InputRef<T, I>| -> Output<Vec<R>> {
 		let mut result = Vec::new();
 		for _ in 0..times {
 			match parser(input) {
@@ -203,6 +213,6 @@ pub fn multiple<I: InputIter, R>(times: usize, parser: impl ParseFn<I, R>) -> im
 
 
 
-pub fn all_chars<I>(input: InputRef<impl InputIter>) -> Output<Vec<impl InputIterItem>> {
-	all_until(either(space, any_regular_char), eof)(input)
+pub fn all_chars<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<Vec<T>> {
+	all_until(any_of(&[&space, &any_regular_char, &newline]), eof)(input)
 }

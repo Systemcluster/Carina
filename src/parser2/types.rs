@@ -2,6 +2,7 @@ use std::fmt::{Display, Debug};
 use std::iter::{Iterator, Peekable};
 use std::ops::{Try};
 use std::option::{NoneError};
+use std::marker::{PhantomData};
 
 use itertools::*;
 use derive_more::*;
@@ -98,12 +99,22 @@ pub struct InputContext
 }
 
 #[derive(Debug, Clone)]
-pub struct Input<I: InputIter>
+pub struct Input<T: InputIterItem, I: InputIter<T>>
 {
 	pub iter: I,
-	pub context: InputContext
+	pub context: InputContext,
+	item: PhantomData<T>
 }
-impl<I: InputIter> Input<I> {
+impl<T: InputIterItem, I: InputIter<T>> Input<T, I> {
+	pub fn new(iter: I) -> Self {Self {
+		iter,
+		context: InputContext {
+			indent: 0,
+			line: 0,
+			position: 0
+		},
+		item: PhantomData
+	}}
 	pub fn next(&mut self) -> Output<I::Item> {
 		match self.iter.next() {
 			None => {
@@ -148,6 +159,6 @@ impl<I: InputIter> Input<I> {
 	}
 }
 
-pub type InputRef<'a, I> = &'a mut Input<I>;
+pub type InputRef<'a, T: InputIterItem, I> = &'a mut Input<T, I>;
 
-pub trait ParseFn<I: InputIter, R> = Fn(InputRef<I>) -> Output<R>;
+pub trait ParseFn<T: InputIterItem, I: InputIter<T>, R> = Fn(InputRef<T, I>) -> Output<R>;
