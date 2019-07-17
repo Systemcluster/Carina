@@ -1,0 +1,14 @@
+[book]
+title = "Carina Programming Language"
+description = "Carina Documentation and Reference"
+authors = ["Christian Sdunek <me@systemcluster.me>"]
+language = "en"
+multilingual = false
+src = "docs"
+
+[output.html]
+theme = "static/docs-theme"
+
+[build]
+build-dir = "target/book"
+create-missing = false

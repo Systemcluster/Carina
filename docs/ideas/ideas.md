@@ -10,13 +10,15 @@ When a function call is side-effect free and called with a statically known data
 
 When a function-call is side-effect free and called with run-time data, it might get re-ordered with other function calls if none of their arguments depend on each other.
 
+A function does not care about the particulars of its arguments, only their traits. It's the callers responsibility to ensure the desired particulars. This enables greater reuse potential.
+
 ## Syntax
 
 Many syntax elements could be defined inside the language as part of the standard import.
 
-fn a: Foo + Bar | Zub i64 -> None
+	fn a: Foo + Bar | Zub i64 -> None
 
-fn a: MatchesAny (MatchesAll (Foo Bar) [Zub i64]) -> None
+	fn a: MatchesAny (MatchesAll (Foo Bar) [Zub i64]) -> None
 
 Grundbausteine matching:
 

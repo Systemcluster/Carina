@@ -2,7 +2,7 @@
 #![feature(associated_type_defaults)]
 #![feature(associated_type_bounds)]
 #![feature(async_await)]
-#![feature(bind_by_move_pattern_guards)] 
+#![feature(bind_by_move_pattern_guards)]
 #![feature(box_patterns, box_syntax)]
 #![feature(c_variadic)]
 #![feature(concat_idents)]
@@ -48,7 +48,6 @@
 #![feature(trait_alias)]
 #![feature(trivial_bounds)]
 #![feature(try_blocks)]
-#![feature(type_alias_enum_variants)]
 #![feature(type_ascription)]
 #![feature(unboxed_closures)]
 #![feature(unsized_locals, unsized_tuple_coercion)]
@@ -107,7 +106,7 @@
 ///
 
 
-#[global_allocator] 
+#[global_allocator]
 static Allocator: std::alloc::System = std::alloc::System;
 
 
