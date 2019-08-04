@@ -15,7 +15,7 @@ pub trait InputIter<T: InputIterItem> = Debug + Clone + Iterator::<Item = T>;
 
 
 #[derive(Debug, Clone)]
-pub enum Error {
+pub enum ParseError {
 	Unspecified,
 	UnexpectedEOF {
 		context: InputContext,
@@ -34,9 +34,9 @@ pub enum Error {
 #[derive(Debug, Clone)]
 pub enum Output<R> {
 	Ok(R),
-	Partial{result: R, error: Error},
-	Error(Error),
-	Critical(Error)
+	Partial{result: R, error: ParseError},
+	Error(ParseError),
+	Critical(ParseError)
 }
 impl<R> Output<R> {
 	pub fn map_value<T: From<R>>(self) -> Output<T> {
@@ -82,7 +82,7 @@ impl<R> Try for Output<R> {
 }
 impl<R> From<NoneError> for Output<R> {
 	fn from(_: NoneError) -> Self {
-		Self::Critical(Error::Unspecified)
+		Self::Critical(ParseError::Unspecified)
 	}
 }
 // impl<T> From<Output<T>> for Output<()> where  {
@@ -118,7 +118,7 @@ impl<T: InputIterItem, I: InputIter<T>> Input<T, I> {
 	pub fn next(&mut self) -> Output<I::Item> {
 		match self.iter.next() {
 			None => {
-				Output::Critical(Error::UnexpectedEOF{
+				Output::Critical(ParseError::UnexpectedEOF{
 					context: self.context,
 					expected: format!("1 more character")
 				})
@@ -139,7 +139,7 @@ impl<T: InputIterItem, I: InputIter<T>> Input<T, I> {
 		for i in 0..by {
 			match self.iter.next() {
 				None => {
-					return Output::Critical(Error::UnexpectedEOF{
+					return Output::Critical(ParseError::UnexpectedEOF{
 						context: self.context,
 						expected: format!("{} more characters", by - i)
 					})

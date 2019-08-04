@@ -25,7 +25,7 @@ pub fn parse(input: std::path::PathBuf) -> Result<SuccessInfo, std::io::Error> {
 	let source = std::fs::read_to_string(input)?;
 	let source = source.as_str().graphemes(true).collect::<Vec<_>>();
 	let input = &mut Input::new(source.into_iter());
-	let result = all_chars(input);
+	let result = block(input);
 	let result = SuccessInfo{message: format!("{:?}", result)};
 	Ok(result)
 }

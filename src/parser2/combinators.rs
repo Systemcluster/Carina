@@ -1,9 +1,10 @@
 use std::fmt::{Display, Debug};
 use std::iter::{Iterator, Peekable};
+use itertools::*;
 
 use super::types::*;
 use super::types::Output::*;
-use super::types::Error::*;
+use super::types::ParseError::*;
 use super::values::*;
 
 
@@ -185,6 +186,18 @@ pub fn zero_or_more<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T
 	}
 }
 
+pub fn one_or_more<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, Vec<R>> {
+	move |input: InputRef<T, I>| {
+		let mut result = Vec::new();
+		if let Ok(next) = parser(input) {
+			result.push(next);
+		}
+		let mut more = zero_or_more(&parser)(input)?;
+		result.append(&mut more);
+		Ok(result)
+	}
+}
+
 pub fn multiple<T: InputIterItem, I: InputIter<T>, R>(times: usize, parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, Vec<R>> {
 	move |input: InputRef<T, I>| -> Output<Vec<R>> {
 		let mut result = Vec::new();
@@ -215,4 +228,42 @@ pub fn multiple<T: InputIterItem, I: InputIter<T>, R>(times: usize, parser: impl
 
 pub fn all_chars<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<Vec<T>> {
 	all_until(any_of(&[&space, &any_regular_char, &newline]), eof)(input)
+}
+
+
+#[derive(Debug, Clone)]
+enum Block {
+	Block(Vec<Output<Expression>>),
+	None
+}
+
+#[derive(Debug, Clone)]
+struct Expression {
+	identifiers: Vec<String>,
+	block: Block
+}
+
+
+pub fn expression<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<Expression> {
+	let identifiers = one_or_more(all_until(any_regular_char, newline))(input);
+	let identifiers = match identifiers {
+		Ok(i) => i,
+		_ => return Error(NoneMatched)
+	};
+	Ok(Expression {
+		identifiers: identifiers.iter().map(|i|i.iter().join("")).collect::<_>(),
+		block: block(input)
+	})
+}
+
+pub fn block<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Block {
+	let exprs = zero_or_more(expression)(input);
+	match exprs {
+		Ok(exprs) if exprs.len() > 0 => {
+			Block::Block(exprs)
+		}
+		Ok(exprs) => {
+
+		}
+	}
 }

@@ -51,7 +51,7 @@
                 "showReuseMessage": true,
                 "clear": false
             }
-        }
+        },
         {
             "label": "run",
             "type": "shell",
