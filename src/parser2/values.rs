@@ -2,7 +2,7 @@ use super::types::InputIterItem;
 
 ///
 /// Detect non-alphanumeric chars in the ASCII range
-/// 
+///
 pub fn is_special(token: impl InputIterItem) -> bool {
 	for i in 0x20..=0x2F {
 		if std::str::from_utf8(&[i]) == Ok(token.as_ref()) {
@@ -28,8 +28,8 @@ pub fn is_special(token: impl InputIterItem) -> bool {
 }
 
 ///
-///	Detect non-prontable chars in the lower ASCII range
-/// 
+///	Detect non-printable chars in the lower ASCII range
+///
 pub fn is_valid(token: impl InputIterItem) -> bool {
 	for i in 0x00..=0x1F {
 		// allow \t, \n, \r
@@ -43,7 +43,7 @@ pub fn is_valid(token: impl InputIterItem) -> bool {
 
 ///
 /// Detect usual newline literals
-/// 
+///
 pub fn is_newline(token: impl InputIterItem) -> bool {
 	[	"\r\n", "\n", "\r"
 	].contains(&token.as_ref())
@@ -51,21 +51,21 @@ pub fn is_newline(token: impl InputIterItem) -> bool {
 
 ///
 /// Detect space
-/// 
+///
 pub fn is_space(token: impl InputIterItem) -> bool {
 	token.as_ref() == " "
 }
 
 ///
 /// Detect tab
-/// 
+///
 pub fn is_tab(token: impl InputIterItem) -> bool {
 	token.as_ref() == "\t"
 }
 
 ///
 /// Detect regular characters
-/// 
+///
 pub fn is_regular(token: impl InputIterItem) -> bool {
 	is_valid(&token) && !is_special(&token) && !is_newline(&token)
 }

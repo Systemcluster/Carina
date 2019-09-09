@@ -1,104 +1,137 @@
-#![feature(arbitrary_self_types)]
-#![feature(associated_type_defaults)]
-#![feature(associated_type_bounds)]
-#![feature(async_await)]
-#![feature(bind_by_move_pattern_guards)]
-#![feature(box_patterns, box_syntax)]
-#![feature(c_variadic)]
-#![feature(concat_idents)]
-#![feature(const_compare_raw_pointers)]
-#![feature(const_fn, const_fn_union, const_generics, const_panic,
-	const_raw_ptr_deref, const_raw_ptr_to_usize_cast, const_transmute)]
-#![feature(core_intrinsics)]
-#![feature(default_type_parameter_fallback)]
-#![feature(decl_macro)]
-#![feature(doc_alias, doc_cfg, doc_keyword, doc_masked, doc_spotlight, external_doc)]
-#![feature(exclusive_range_pattern, exhaustive_patterns)]
-#![feature(existential_type)]
-#![feature(extern_types)]
-#![feature(fundamental)]
-#![feature(generators)]
-#![feature(generic_associated_types)]
-#![feature(impl_trait_in_bindings)]
-#![feature(in_band_lifetimes)]
-#![feature(infer_static_outlives_requirements)]
-#![feature(label_break_value)]
-#![feature(naked_functions)]
-#![feature(never_type)]
-#![feature(nll)]
-#![feature(non_ascii_idents)]
-#![feature(non_exhaustive)]
-#![feature(optimize_attribute)]
-#![feature(optin_builtin_traits)]
-#![feature(overlapping_marker_traits)]
-#![feature(panic_runtime)]
-#![feature(platform_intrinsics)]
-#![feature(plugin, plugin_registrar, rustc_private)]
-#![feature(precise_pointer_size_matching)]
-#![feature(proc_macro_hygiene)]
-#![feature(re_rebalance_coherence)]
-#![feature(repr_simd, repr128)]
-#![feature(rustc_attrs)]
-#![feature(simd_ffi)]
-#![feature(slice_patterns)]
-#![feature(specialization)]
-#![feature(structural_match)]
-#![feature(thread_local)]
-#![feature(trace_macros)]
-#![feature(trait_alias)]
-#![feature(trivial_bounds)]
-#![feature(try_blocks)]
-#![feature(type_ascription)]
-#![feature(unboxed_closures)]
-#![feature(unsized_locals, unsized_tuple_coercion)]
-#![feature(untagged_unions)]
-
-#![feature(await_macro)]
-#![feature(clamp)]
-#![feature(coerce_unsized)]
-// #![feature(concat_idents_macro)]
-#![feature(const_cstr_unchecked, const_int_conversion,
-	// const_needs_drop, const_ptr_nonnull,
-	const_saturating_int_methods, const_slice_len, const_str_as_bytes, const_str_len, const_string_new,
-	const_type_id, const_vec_new)]
-#![feature(error_iter, error_type_id)]
-#![feature(euclidean_division)]
-#![feature(exact_size_is_empty)]
-#![feature(extra_log_consts)]
-// #![feature(fix_error)]
-#![feature(fn_traits)]
-#![feature(gen_future)]
-#![feature(generator_trait)]
-#![feature(hash_raw_entry)]
-#![feature(ip)]
-#![feature(is_sorted)]
-#![feature(iter_once_with)]
-#![feature(linked_list_extras)]
-#![feature(manually_drop_take)]
-#![feature(map_entry_replace, map_get_key_value)]
-#![feature(maybe_uninit_array, maybe_uninit_ref, maybe_uninit_slice)]
-#![feature(pattern)]
-#![feature(range_is_empty)]
-#![feature(result_map_or_else)]
-#![feature(shrink_to)]
-#![feature(slice_concat_ext, slice_iter_mut_as_slice, slice_partition_at_index, slice_partition_dedup)]
-#![feature(trusted_len)]
-#![feature(try_reserve)]
-#![feature(try_trait)]
-#![feature(unicode_version)]
-#![feature(unsize)]
-#![feature(vec_drain_as_slice, vec_remove_item, vec_resize_default)]
-#![feature(wait_timeout_until, wait_until)]
-#![feature(weak_counts)]
-#![feature(weak_ptr_eq)]
-#![feature(wrapping_next_power_of_two)]
-
-
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::useless_format)]
+#![allow(
+	dead_code,
+	unused_imports,
+	non_upper_case_globals,
+	incomplete_features,
+	clippy::useless_format,
+	clippy::toplevel_ref_arg,
+	clippy::unneeded_field_pattern,
+	clippy::redundant_pattern_matching,
+	clippy::len_zero
+)]
+#![feature(
+	arbitrary_self_types,
+	associated_type_defaults,
+	associated_type_bounds,
+	bind_by_move_pattern_guards,
+	box_patterns,
+	box_syntax,
+	c_variadic,
+	concat_idents,
+	const_compare_raw_pointers,
+	const_fn,
+	const_fn_union,
+	const_generics,
+	const_panic,
+	const_raw_ptr_deref,
+	const_raw_ptr_to_usize_cast,
+	const_transmute,
+	core_intrinsics,
+	default_type_parameter_fallback,
+	decl_macro,
+	doc_alias,
+	doc_cfg,
+	doc_keyword,
+	doc_masked,
+	doc_spotlight,
+	external_doc,
+	exclusive_range_pattern,
+	exhaustive_patterns,
+	extern_types,
+	fundamental,
+	generators,
+	generic_associated_types,
+	impl_trait_in_bindings,
+	in_band_lifetimes,
+	infer_static_outlives_requirements,
+	label_break_value,
+	let_chains,
+	naked_functions,
+	never_type,
+	nll,
+	non_ascii_idents,
+	non_exhaustive,
+	optimize_attribute,
+	optin_builtin_traits,
+	overlapping_marker_traits,
+	panic_runtime,
+	platform_intrinsics,
+	plugin,
+	plugin_registrar,
+	rustc_private,
+	precise_pointer_size_matching,
+	proc_macro_hygiene,
+	re_rebalance_coherence,
+	repr_simd,
+	repr128,
+	rustc_attrs,
+	simd_ffi,
+	slice_patterns,
+	specialization,
+	structural_match,
+	thread_local,
+	trace_macros,
+	trait_alias,
+	trivial_bounds,
+	try_blocks,
+	type_alias_impl_trait,
+	type_ascription,
+	unboxed_closures,
+	unsized_locals,
+	unsized_tuple_coercion,
+	untagged_unions
+)]
+#![feature(
+	clamp,
+	coerce_unsized,
+	const_cstr_unchecked,
+	const_int_conversion,
+	const_saturating_int_methods,
+	const_slice_len,
+	const_str_as_bytes,
+	const_str_len,
+	const_string_new,
+	const_type_id,
+	const_vec_new,
+	error_iter,
+	error_type_id,
+	exact_size_is_empty,
+	extra_log_consts,
+	fn_traits,
+	gen_future,
+	generator_trait,
+	hash_raw_entry,
+	ip,
+	is_sorted,
+	iter_once_with,
+	linked_list_extras,
+	manually_drop_take,
+	map_entry_replace,
+	map_get_key_value,
+	maybe_uninit_ref,
+	maybe_uninit_slice,
+	pattern,
+	range_is_empty,
+	result_map_or_else,
+	shrink_to,
+	slice_concat_ext,
+	slice_iter_mut_as_slice,
+	slice_partition_at_index,
+	slice_partition_dedup,
+	trusted_len,
+	try_reserve,
+	try_trait,
+	unicode_version,
+	unsize,
+	vec_drain_as_slice,
+	vec_remove_item,
+	vec_resize_default,
+	wait_timeout_until,
+	wait_until,
+	weak_counts,
+	weak_ptr_eq,
+	wrapping_next_power_of_two
+)]
 
 
 ///
@@ -125,11 +158,7 @@ use color_backtrace;
 
 
 #[derive(StructOpt, Debug)]
-#[structopt(
-	name = "Carina",
-	about = "Carina language compiler",
-	author = "Christian Sdunek <me@systemcluster.me>",
-	version = "0.0.1")]
+#[structopt()]
 struct Opt {
 	#[structopt(short = "d", long = "debug")]
 	debug: bool,
@@ -138,8 +167,8 @@ struct Opt {
 }
 
 
-mod parser;
 mod parser2;
+
 
 fn main() {
 	color_backtrace::install();

@@ -1,6 +1,9 @@
 use std::fmt::{Display, Debug};
 use std::iter::{Iterator, Peekable};
 use itertools::*;
+use trace::trace;
+
+trace::init_depth_var!();
 
 use super::types::*;
 use super::types::Output::*;
@@ -18,6 +21,9 @@ pub fn eof<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<()
 		_ => Ok(()),
 	}
 }
+// pub fn literal<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
+// 	// TODO
+// }
 pub fn tab<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<T> {
 	let x = input.next()?;
 	if is_tab(x.as_ref()) {
@@ -224,6 +230,12 @@ pub fn multiple<T: InputIterItem, I: InputIter<T>, R>(times: usize, parser: impl
 	}
 }
 
+pub fn wrap_ok<T: InputIterItem, I: InputIter<T>, R>(parser: impl ParseFn<T, I, R>) -> impl ParseFn<T, I, Output<R>> {
+	move |input: InputRef<T, I>| -> Output<Output<R>> {
+		Ok(parser(input))
+	}
+}
+
 
 
 pub fn all_chars<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<Vec<T>> {
@@ -232,20 +244,21 @@ pub fn all_chars<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Out
 
 
 #[derive(Debug, Clone)]
-enum Block {
-	Block(Vec<Output<Expression>>),
+pub enum Block {
+	Block(Vec<Expression>),
 	None
 }
 
 #[derive(Debug, Clone)]
-struct Expression {
+pub struct Expression {
 	identifiers: Vec<String>,
 	block: Block
 }
 
 
+#[trace]
 pub fn expression<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Output<Expression> {
-	let identifiers = one_or_more(all_until(any_regular_char, newline))(input);
+	let identifiers = one_or_more(all_until(any_regular_char, any_of(&[&discard(newline), &eof])))(input);
 	let identifiers = match identifiers {
 		Ok(i) => i,
 		_ => return Error(NoneMatched)
@@ -256,14 +269,15 @@ pub fn expression<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Ou
 	})
 }
 
+#[trace]
 pub fn block<T: InputIterItem>(input: InputRef<T, impl InputIter<T>>) -> Block {
 	let exprs = zero_or_more(expression)(input);
 	match exprs {
 		Ok(exprs) if exprs.len() > 0 => {
 			Block::Block(exprs)
 		}
-		Ok(exprs) => {
-
+		_ => {
+			Block::None
 		}
 	}
 }

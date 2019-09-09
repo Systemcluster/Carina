@@ -53,8 +53,8 @@ impl<R> Output<R> {
 	}
 	pub fn discard_value(self) -> Output<()> {
 		match self {
-			Self::Ok(x) => Output::Ok(()),
-			Self::Partial{result, error}
+			Self::Ok(_) => Output::Ok(()),
+			Self::Partial{result: _, error}
 				=> Output::Partial {
 					result: (),
 					error
@@ -159,6 +159,6 @@ impl<T: InputIterItem, I: InputIter<T>> Input<T, I> {
 	}
 }
 
-pub type InputRef<'a, T: InputIterItem, I> = &'a mut Input<T, I>;
+pub type InputRef<'a, T, I> = &'a mut Input<T, I>;
 
 pub trait ParseFn<T: InputIterItem, I: InputIter<T>, R> = Fn(InputRef<T, I>) -> Output<R>;
