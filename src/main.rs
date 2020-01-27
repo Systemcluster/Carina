@@ -13,7 +13,6 @@
 	arbitrary_self_types,
 	associated_type_defaults,
 	associated_type_bounds,
-	bind_by_move_pattern_guards,
 	box_patterns,
 	box_syntax,
 	c_variadic,
@@ -47,10 +46,8 @@
 	label_break_value,
 	let_chains,
 	naked_functions,
-	never_type,
 	nll,
 	non_ascii_idents,
-	non_exhaustive,
 	optimize_attribute,
 	optin_builtin_traits,
 	overlapping_marker_traits,
@@ -61,12 +58,10 @@
 	rustc_private,
 	precise_pointer_size_matching,
 	proc_macro_hygiene,
-	re_rebalance_coherence,
 	repr_simd,
 	repr128,
 	rustc_attrs,
 	simd_ffi,
-	slice_patterns,
 	specialization,
 	structural_match,
 	thread_local,
@@ -87,12 +82,7 @@
 	const_cstr_unchecked,
 	const_int_conversion,
 	const_saturating_int_methods,
-	const_slice_len,
-	const_str_as_bytes,
-	const_str_len,
-	const_string_new,
 	const_type_id,
-	const_vec_new,
 	error_iter,
 	error_type_id,
 	exact_size_is_empty,
@@ -105,14 +95,11 @@
 	is_sorted,
 	iter_once_with,
 	linked_list_extras,
-	manually_drop_take,
 	map_entry_replace,
-	map_get_key_value,
 	maybe_uninit_ref,
 	maybe_uninit_slice,
 	pattern,
 	range_is_empty,
-	result_map_or_else,
 	shrink_to,
 	slice_concat_ext,
 	slice_iter_mut_as_slice,
@@ -126,64 +113,55 @@
 	vec_drain_as_slice,
 	vec_remove_item,
 	vec_resize_default,
-	wait_timeout_until,
-	wait_until,
-	weak_counts,
-	weak_ptr_eq,
 	wrapping_next_power_of_two
 )]
-
 
 ///
 /// Carina Programming Language Interpreter
 ///
 
-
 #[global_allocator]
 static Allocator: std::alloc::System = std::alloc::System;
 
+#[macro_use]
+extern crate regex;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde;
 
-#[macro_use] extern crate regex;
-#[macro_use] extern crate log;
-#[macro_use] extern crate serde;
-
-
-use log::*;
-use env_logger;
-use pretty_env_logger;
 use async_log;
 use chrono::*;
-use structopt::StructOpt;
 use color_backtrace;
-
+use log::*;
+use pretty_env_logger;
+use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt()]
+#[structopt(about, author)]
 struct Opt {
-	#[structopt(short = "d", long = "debug")]
+	#[structopt(short = "d", long = "debug", help = "Prints additional debug output")]
 	debug: bool,
-	#[structopt(parse(from_os_str))]
+	#[structopt(parse(from_os_str), help = "Carina source file")]
 	input: std::path::PathBuf,
 }
 
-
 mod parser2;
-
 
 fn main() {
 	color_backtrace::install();
 	let opt = Opt::from_args();
 
 	let level_default = log::LevelFilter::Info;
-	let level: log::LevelFilter = std::env::var("LOG_LEVEL").map(|v|str::parse(&v))
+	let level: log::LevelFilter = std::env::var("LOG_LEVEL")
+		.map(|v| str::parse(&v))
 		.unwrap_or(Ok(level_default))
 		.unwrap_or(level_default);
 	pretty_env_logger::formatted_timed_builder()
-		.write_style(env_logger::WriteStyle::Always)
 		.filter_level(level)
 		.init();
 	// async_log::Logger::wrap(logger, || 0)
-    // 	.start(log::LevelFilter::Trace).unwrap();
+	// 	.start(log::LevelFilter::Trace).unwrap();
 
 	let time_start = Utc::now();
 	let success: bool;
@@ -203,17 +181,14 @@ fn main() {
 	let time_seconds;
 	if let Some(t) = time_elapsed.num_nanoseconds() {
 		time_seconds = t as f64 / 1000.0 / 1000.0 / 1000.0;
-	}
-	else if let Some(t) = time_elapsed.num_microseconds() {
+	} else if let Some(t) = time_elapsed.num_microseconds() {
 		time_seconds = t as f64 / 1000.0 / 1000.0;
-	}
-	else {
+	} else {
 		time_seconds = time_elapsed.num_milliseconds() as f64 / 1000.0;
 	}
 	if success {
 		info!("✔ elapsed time: {:.5}s", time_seconds);
-	}
-	else {
+	} else {
 		error!("✘ elapsed time: {:.5}s", time_seconds);
 	}
 }

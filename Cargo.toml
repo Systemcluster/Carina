@@ -30,22 +30,21 @@ debug-assertions = false
 lto = "thin"
 
 [dependencies]
-chrono = { version = "0.4.9", features = ["serde"] }
-rand = "0.7.0"
-unicode-segmentation = "1.3.0"
+chrono = { version = "0.4.10", features = ["serde"] }
+rand = "0.7.3"
+unicode-segmentation = "1.6.0"
 unicode_reader = "1.0.0"
-regex = "1.3.1"
+regex = "1.3.3"
 log = "0.4.8"
 pretty_env_logger = "0.3.1"
 copyless = "0.1.4"
-serde = "1.0.100"
-serde_derive = "1.0.100"
-derive_more = "0.15.0"
-env_logger = "0.6.2"
+serde = "1.0.104"
+serde_derive = "1.0.104"
+derive_more = "0.99.2"
 lazy_static = "1.4.0"
-rayon = "1.2.0"
-structopt = "0.3.1"
-itertools = "0.8.0"
-color-backtrace = "0.2.3"
+rayon = "1.3.0"
+structopt = "0.3.8"
+itertools = "0.8.2"
+color-backtrace = "0.3.0"
 async-log = "2.0.0"
 trace = { git="https://github.com/gsingh93/trace" }
