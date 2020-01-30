@@ -7,7 +7,8 @@
 	clippy::toplevel_ref_arg,
 	clippy::unneeded_field_pattern,
 	clippy::redundant_pattern_matching,
-	clippy::len_zero
+	clippy::len_zero,
+	clippy::print_literal
 )]
 #![feature(
 	arbitrary_self_types,
@@ -175,7 +176,6 @@ fn main() {
 			success = true;
 		}
 	}
-
 	let time_end = Utc::now();
 	let time_elapsed: Duration = time_end.signed_duration_since(time_start);
 	let time_seconds;

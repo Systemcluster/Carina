@@ -28,13 +28,12 @@ pub fn is_special(token: impl InputIterItem) -> bool {
 }
 
 ///
-///	Detect non-printable chars in the lower ASCII range
+/// Detect non-printable chars in the lower ASCII range
 ///
 pub fn is_valid(token: impl InputIterItem) -> bool {
 	for i in 0x00..=0x1F {
 		// allow \t, \n, \r
-		if i != 0x09 && i != 0x0A && i != 0x0D
-		&& std::str::from_utf8(&[i]) == Ok(token.as_ref()) {
+		if i != 0x09 && i != 0x0A && i != 0x0D && std::str::from_utf8(&[i]) == Ok(token.as_ref()) {
 			return false;
 		}
 	}
@@ -45,8 +44,7 @@ pub fn is_valid(token: impl InputIterItem) -> bool {
 /// Detect usual newline literals
 ///
 pub fn is_newline(token: impl InputIterItem) -> bool {
-	[	"\r\n", "\n", "\r"
-	].contains(&token.as_ref())
+	["\r\n", "\n", "\r"].contains(&token.as_ref())
 }
 
 ///
